@@ -14,7 +14,7 @@ $ResponseSet = Invoke-RestMethod -Uri "$BizTalk360ServerUrl/BizTalk360/Services.
 $BizTalk360Version = $ResponseSet.bizTalk360Info.biztalk360Version
 
 ## Between BizTalk360 9.0 and 9.1 a breaking change was done in the API
-if ($BizTalk360Version -ge '9.1')
+if ($BizTalk360Version -ge '9.1' -or $BizTalk360Version -ge '10.0')
 {
     $StopOperation = 'StopAlertMaintenance'
 }
@@ -28,7 +28,7 @@ If ($MaintenanceId -eq "")
        Write-Host "MaintenanceId not specified. Trying to fetch latest from BizTalk360"
        $ResponseSet = Invoke-RestMethod -Uri "$BizTalk360ServerUrl/biztalk360/Services.REST/AlertService.svc/GetAlertMaintenance?environmentId=$BizTalk360EnvironmentId" -Method Get -UseDefaultCredentials
 
-       $maintenance = @($ResponseSet.alertMaintenances | where { $_.comment -eq "BizTalk Deploy" })
+       $maintenance = @($ResponseSet.alertMaintenances | where { $_.comment -eq "BizTalk Deploy" -or $_.name -eq "BizTalk Deploy" })
 
        If ($maintenance.Count -gt 0)
        {
