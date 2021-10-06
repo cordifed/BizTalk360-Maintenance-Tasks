@@ -8,42 +8,16 @@ param(
 )
 
 $DateTime = Get-Date
+##Don't know why it is localtime on 1 server and UTC on another.
+##$DateTime = $DateTime.ToUniversalTime()
 
 $ResponseSet = Invoke-RestMethod -Uri "$BizTalk360ServerUrl/BizTalk360/Services.REST/AdminService.svc/GetBizTalk360Info" -Method Get -UseDefaultCredentials
+$ResponseSet | out-string
 $BizTalk360Version = $ResponseSet.bizTalk360Info.biztalk360Version
 
-## In BizTalk360 10.0, breaking changes were introduced to the API
-if ($BizTalk360Version -ge '10.0')
-{
-    $UniversalDateTime = $DateTime.ToUniversalTime()
-    $Request = '{
-      "context": {
-          "callerReference": "AzureDevOps",
-          "environmentSettings": {
-              "id": "' + $BizTalk360EnvironmentId + '"
-          }
-      },
-      "alertMaintenance": {
-          "name": "BizTalk Deploy",
-          "comment": "This maintenance is created from Azure DevOps, as part of an automated deployment.",
-          "maintenanceStartTime": "' + $UniversalDateTime.ToString("yyyy-MM-ddTHH:mm:ss.000") + '",
-          "isOneTimeSchedule": true,
-          "summary": "BizTalk Deploy",
-          "scheduleConfiguration": {
-            "recurrenceStartDate": "' + $DateTime.ToString("yyyyMMdd") + '",
-            "recurrenceEndDate": "' + $DateTime.AddHours(1).ToString("yyyyMMdd") + '",
-            "recurrenceStartTime": "' + $DateTime.ToString("HHmmss") + '",
-            "recurrenceEndTime": "' + $DateTime.AddHours(1).ToString("HHmmss") + '",
-            "isImmediate": true
-          }
-      }
-  }
-    '
-}
 ## Between BizTalk360 9.0 and 9.1 a breaking change was done in the API
-elseif ($BizTalk360Version -ge '9.1')
+if ($BizTalk360Version -ge '9.1')
 {
-    $DateTime = $DateTime.ToUniversalTime()
     $Request = '{
       "context": {
         "callerReference": "AzureDevOps",
@@ -54,6 +28,7 @@ elseif ($BizTalk360Version -ge '9.1')
       "alertMaintenance": {
         "comment": "BizTalk Deploy",
         "maintenanceStartTime": "' + $DateTime.ToString("yyyy-MM-ddTHH:mm:ss.000") + '",
+        "expiryDateTime": "' + $DateTime.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss.000") + '",
         "isOneTimeSchedule" : true,
         "summary": "BizTalk Deploy",
         "scheduleConfiguration": {
@@ -61,14 +36,13 @@ elseif ($BizTalk360Version -ge '9.1')
             "recurrenceEndDate": "' + $DateTime.AddHours(1).ToString("yyyyMMdd") + '",
             "recurrenceStartTime": "' + $DateTime.ToString("HHmmss") + '",
             "recurrenceEndTime": "' + $DateTime.AddHours(1).ToString("HHmmss") + '",
-            "isImmediate": true
+            "isImmediate": false
         }
       }
     }'
 }
 else
 {
-    $DateTime = $DateTime.ToUniversalTime()
     $Request = '{
       "context": {
         "callerReference": "AzureDevOps",
@@ -89,7 +63,7 @@ else
 
 Write-Host $Request
 $ResponseSet = Invoke-RestMethod -Uri "$BizTalk360ServerUrl/biztalk360/Services.REST/AlertService.svc/SetAlertMaintenance" -Method Post -ContentType "application/json" -Body $Request -UseDefaultCredentials
-$ResponseSet
+$ResponseSet | out-string
 
 If ($ResponseSet.success)
 {
