@@ -48,7 +48,7 @@
 		}
 	],
 	"execution": {
-		"PowerShell": {
+		"PowerShell3": {
 			"target": "$(currentDirectory)\\UpdateBizTalk360Mappings.ps1",
 			"argumentFormat": "",
 			"workingDirectory": "$(currentDirectory)"
